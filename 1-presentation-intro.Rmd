@@ -1,0 +1,428 @@
+---
+title: "Loops - bucles"
+author: "Ana Diedrichs"
+date: "May 18, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(microbenchmark)
+library(tidyverse)
+# library(datos)
+library(datasets)
+library(nycflights13)
+library("stringr")
+```
+
+# Don't repeat yourself :-D
+
+# Bucles (Loops)
+
+Ejemplo, creamos un tibble
+
+```{r}
+df <- tibble(
+  a = rnorm(10000),
+  b = rnorm(10000),
+  c = rnorm(10000),
+  d = rnorm(10000)
+)
+```
+
+## Ejemplo: calculo de promedio (mean) a cada columna
+
+
+```{r}
+median(df$a)
+median(df$b)
+median(df$c)
+median(df$d)
+```
+
+## Pero.. rompemos la regla "don't repeat yourself"
+
+Nunca copies ni pegues código más de dos veces. 
+Para eso están los bucles.
+
+
+## For : sintaxis
+
+
+```{r}
+
+output <- c()  # 1. output / salida
+for (i in seq_along(df)) {            # 2. sequence / sequencia
+  output <- c(output,median(df[[i]]))      # 3. body / cuerpo
+}
+output
+
+
+```
+
+## For: output con tamaño fijo
+
+
+```{r}
+output <- vector("double", ncol(df))  # 1. output / salida : tamaño fijo en salida !!
+for (i in 1:ncol(df)) {            # 2. sequence / secuencia
+  output[[i]] <- median(df[[i]])      # 3. body / cuerpo 
+}
+output
+```
+
+## For: output
+
+```{r}
+promedioForInicial <- function(df) {
+  output <- c()  # 1. output / salida
+  for (i in 1:ncol(df)) {            # 2. sequence / sequencia
+    output <- c(output,median(df[[i]]))      # 3. body / cuerpo
+  }
+  output
+}
+
+promedioOutputFijo <- function(df) {
+  output <- vector("double", ncol(df))  # 1. output / salida : tamaño fijo en salida !!
+  for (i in 1:ncol(df)) {            # 2. sequence / secuencia
+    output[[i]] <- median(df[[i]])      # 3. body / cuerpo 
+  }
+  output
+}
+
+system.time(promedioForInicial(df))
+system.time(promedioOutputFijo(df))
+```
+
+## For: output
+
+Pareciera ser "más lento" al inicializar el output con tamaño fijo. 
+
+Sin embargo es mejor práctiva ver
+`output <- vector("double", ncol(df))`
+antes que `output <- c()`
+
+More experimentation later... 
+
+## Mejora: uso seq_along 
+
+
+```{r}
+output <- vector("double", ncol(df))  # 1. output: tamaño fijo en salida !!
+for (i in seq_along(df)) {            # 2. sequence
+  output[[i]] <- median(df[[i]])      # 3. body
+}
+output
+```
+
+## Why seq_along
+
+`seq_along ()` es una versión segura de la más familiar `1:length(l)`, con una diferencia importante: 
+si se tiene un vector de longitud cero, `seq_along ()` hace lo correcto:
+
+```{r}
+y <- vector("double", 0) # por algun motivo el vector no tiene datos
+seq_along(y)
+
+1:length(y)
+```
+
+Ejemplo
+
+```{r}
+index <- vector("integer",5)
+index <- 15:20
+for(i in 1:length(index)){ 
+  print(str_c("Valor de este elemento es ",index[i]))
+  }
+```
+
+```{r}
+index <- vector("integer",0)
+
+for(i in 1:length(index)){ 
+  print(str_c("Valor de este elemento es ",index[i]))
+  }
+```
+
+En el siguiente caso, el for no se ejecuta
+
+```{r}
+index <- vector("integer",0)
+for(i in seq_along(index)){ 
+  print(str_c("Valor de este elemento es ",index[i]))
+  }
+```
+
+*IMPORTANTE REVISAR LOS VALORES - CHECK YOUR INPUTS!!*
+
+### Ejercicios intro for
+
+Compute the mean of every column in mtcars.
+```{r}
+output <- vector("double", ncol(mtcars))
+names(output) <- names(mtcars)
+for (i in names(mtcars)) {
+  output[i] <- mean(mtcars[[i]])
+}
+output
+```
+
+### 21.2.1 Ejercicios intro for
+
+Determine the type of each column in nycflights13::flights.
+
+```{r}
+
+output <- vector("list", ncol(nycflights13::flights))
+names(output) <- names(nycflights13::flights)
+for (i in names(nycflights13::flights)) {
+  output[[i]] <- class(nycflights13::flights[[i]])
+}
+output
+```
+
+### 21.2.1 Ejercicios intro for
+
+Calcular el número de valores únicos en cada columna del dataset iris (o flores en paquete datos)
+```{r}
+data("iris")
+iris_uniq <- vector("double", ncol(iris))
+names(iris_uniq) <- names(iris)
+for (i in names(iris)) {
+  iris_uniq[i] <- length(unique(iris[[i]]))
+}
+iris_uniq
+```
+
+### Todo puede fallar: EJEMPLOS 
+
+#### Error: no dataset found 
+
+```{r}
+give_me_data  <- function () { return(NULL)}
+data <- give_me_data()
+output <- c()  
+for (i in 1:ncol(data)) {            # 2. sequence
+  output <- c(output,median(data[[i]]))      # 3. body
+}
+output
+```
+
+##### Error: invalid length argument
+
+```{r}
+data <- give_me_data()
+output <- vector("double", ncol(data))  # 1. output: tamaño fijo en salida !!
+for (i in seq_along(data)) {            # 2. sequence
+  output[[i]] <- median(data[[i]])      # 3. body
+}
+output
+```
+
+##### Otro ejemplo dataset NULL 
+
+```{r}
+data <- give_me_data()
+output <- c()  # 1. output: tamaño fijo en salida !!
+for (i in seq_along(data)) {            # 2. sequence
+  output <- c(median(data[[i]]))      # 3. body
+}
+output
+```
+
+##### SOLUCION 
+
+Chequear **SIEMPRE ALWAYS* los datos que pasamos a nuestros bucles
+
+```{r}
+data <- give_me_data()
+
+if(is.null(data) || is.na(data)) stop("My data is NULL. Please give my data back :-) ")
+output <- c()  # 1. output
+for (i in seq_along(data)) {            # 2. sequence
+  output <- c(median(data[[i]]))      # 3. body
+}
+output
+```
+
+### 21.2.1 Ejercicios intro for
+
+
+Generar diez normales aleatorias de distribuciones con medias -10, 0, 10 y 100.
+Piensa en el resultado, la secuencia y el cuerpo antes de empezar a escribir el bucle.
+
+Compute the number of unique values in each column of iris.
+Generate 10 random normals from distributions with means of -10, 0, 10, and 100.
+Think about the output, sequence, and body before you start writing the loop.
+
+```{r}
+
+```
+
+### No usemos for si hay alguna funcion de R que ya lo resuelve
+
+Don't use `for` if an R function has already resolved !
+
+### Ejemplos 
+
+EJERCICIO: Elimina el bucle for en cada uno de los siguientes ejemplos aprovechando alguna función existente que trabaje con vectores:
+
+Eliminate the for loop in each of the following examples by taking advantage of an existing function that works with vectors:
+
+#### Ejemplo 1
+
+```{r}
+out <- ""
+for (x in letters) {
+  out <- stringr::str_c(out, x)
+}
+out
+```
+
+```{r}
+stringr::str_c(letters, collapse = "")
+```
+#### Ejemplo 2
+En vez de esto:
+```{r}
+x <- sample(100)
+sd <- 0
+for (i in seq_along(x)) {
+  sd <- sd + (x[i] - mean(x)) ^ 2
+}
+sd <- sqrt(sd / (length(x) - 1))
+
+```
+Usar esto:
+```{r}
+sd(x)
+```
+O esto 
+```{r}
+sqrt(sum((x - mean(x))^2) / (length(x) - 1))
+```
+
+
+#### Ejemplo 3
+```{r}
+x <- runif(100)
+out <- vector("numeric", length(x))
+out[1] <- x[1]
+for (i in 2:length(x)) {
+  out[i] <- out[i - 1] + x[i]
+}
+```
+
+```{r}
+out <- cumsum(x)
+```
+
+#### Benchmarking
+
+Ejercicio: Es común ver bucles for que no preasignan el output y en su lugar aumentan la longitud de un vector en cada paso:
+```{r}
+output <- vector("integer", 0)
+for (i in seq_along(x)) {
+  output <- c(output, lengths(x[[i]]))
+}
+output
+```
+
+¿Cómo afecta esto el rendimiento? Diseña y ejecuta un experimento.
+
+##### Experimento
+
+```{r}
+funcion1 <- function(x){
+  
+  output <- vector("integer", 0)
+  for (i in seq_along(x)) {
+    output <- c(output, lengths(x[i]))
+  }
+  output
+}
+funcion2 <- function(x){
+  
+  output <- vector("integer", ncol(x))
+  for (i in seq_along(x)) {
+    output[i] <- lengths(x[i]) 
+  }
+  output
+}
+
+```
+##### Experimento 
+
+```{r}
+
+system.time(funcion1(df))
+system.time(funcion2(df))
+
+funcion1(df)
+funcion2(df)
+
+microbenchmark(funcion1(df),funcion2(df),times = 100)
+```
+
+### While 
+
+# ANEXO
+
+## SEQ_ALONG IGUAL A OTROS... ERROR 
+
+Ejemplo: porque seq_along
+
+```{r}
+u <- c(10,20,30)
+for (i in u) {
+  x <- rnorm(10,mean = u)
+  print(mean(x))
+}
+```
+
+#### Mejoramos ejemplo 
+
+Mejoramos el ejemplo anterior
+
+```{r}
+u <- c(10,20,30)
+n <- 10   
+for (i in u) {
+  x <- rnorm(n = n,mean = u)
+  print(mean(x))
+}
+```
+
+### porque seq_along
+
+Data not found: Que pasa si u no existe ?
+
+```{r}
+u <- c()
+n <- 10   
+for (i in u) {
+  x <- rnorm(n = n,mean = u)
+  print(mean(x))
+}
+```
+
+```{r}
+u <- c()
+if(is.null(u)) {print("u es nulo ")}
+n <- 10   
+for (i in seq_along(u)) {
+  x <- rnorm(n = n,mean = u)
+  print(mean(x))
+}
+```
+```{r}
+u <- vector("numeric",0)
+if(is.null(u)) {print("u es nulo ")}
+n <- 10   
+for (i in seq_along(u)) {
+  x <- rnorm(n = n,mean = u)
+  print(mean(x))
+}
+```
