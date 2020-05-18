@@ -49,11 +49,12 @@ Para eso están los bucles.
 
 ## For : sintaxis
 
+*Para cada elemento `i` en mi secuencia `seq_along` hacer ... cosas.*
 
 ```{r}
 
 output <- c()  # 1. output / salida
-for (i in seq_along(df)) {            # 2. sequence / sequencia
+for (i in seq_along(df)) {            # 2. sequence / secuencia
   output <- c(output,median(df[[i]]))      # 3. body / cuerpo
 }
 output
@@ -366,7 +367,259 @@ funcion2(df)
 microbenchmark(funcion1(df),funcion2(df),times = 100)
 ```
 
-### While 
+## Variaciones en el uso de for
+
+### Patrones
+
+Hay tres formas básicas de hacer un bucle sobre un vector. Hasta ahora hemos visto la más general: iterar sobre los índices numéricos con for (i in seq_along (xs)), y extraer el valor con x [[i]]. Hay otras dos formas:
+
+* Iterar sobre los elementos: for (x in xs). Esta forma es la más útil si solo te preocupas por los efectos secundarios, como graficar o grabar un archivo, porque es difícil almacenar el output de forma eficiente.
+
+```{r}
+out <- ""
+for (x in letters) {
+  out <- stringr::str_c(out, x)
+}
+out
+```
+
+* Iterar sobre los nombres: for (nm in names(xs)). Esto te entrega el nombre, que se puede usar para acceder al valor con x [[nm]]. Esto es útil si queremos utilizar el nombre en el título de un gráfico o en el nombre de un archivo. Si estás creando un output con nombre, asegúrate de nombrar el vector de resultados de esta manera:
+
+```{r}
+df1 <- data.frame(x = rnorm(100),y=rnorm(100))
+df2 <- data.frame(x = rnorm(100, mean = 10),y=rnorm(100,mean = 10))
+x <- list(result1 = df1, result2= df2)
+
+
+for(j in names(x)){
+  plot(x[[j]],main=j)
+}
+```
+
+* Iterar sobre los índices numéricos, su nombre y valor seran iguales 
+
+```{r}
+x <- 1:10
+for (i in seq_along(x)) {
+  name <- names(x)[[i]]
+  value <- x[[i]]
+}
+```
+
+
+### Modificar objeto existente
+
+```{r}
+df3 <- tibble(
+  a = rnorm(10),
+  b = rnorm(10),
+  c = rnorm(10),
+  d = rnorm(10)
+)
+rescale01 <- function(x) {
+  rng <- range(x, na.rm = TRUE)
+  (x - rng[1]) / (rng[2] - rng[1])
+}
+
+df3$a <- rescale01(df3$a)
+df3$b <- rescale01(df3$b)
+df3$c <- rescale01(df3$c)
+df3$d <- rescale01(df3$d)
+```
+
+```{r}
+for (i in seq_along(df)) {
+  df[[i]] <- rescale01(df[[i]])
+}
+```
+
+
+### Longitud de output desconocida
+
+```{r}
+set.seed(10)
+medias <- c(0, 1, 2)
+
+output <- double()
+for (i in seq_along(medias)) {
+  n <- sample(100, 1)
+  output <- c(output, rnorm(n, medias[[i]]))
+}
+str(output)
+#>  num [1:138] 0.912 0.205 2.584 -0.789 0.588 ...
+```
+
+Guarda los elementos en una lista !!
+
+```{r}
+out <- vector("list", length(medias))
+for (i in seq_along(medias)) {
+  n <- sample(100, 1)
+  out[[i]] <- rnorm(n, medias[[i]])
+}
+str(out)
+```
+
+
+
+
+## Longitud de secuencia desconocida: 
+
+* Caso experimentos o simulaciones
+* Realizar un bucle hasta que se obtengan tres caras seguidas.
+* Interaccion con el usuario: mientras no me ingrese S de salir, sigue el programa
+* De uso muy comun:
+  * Mi alarma sensa, mientras no detecta intruso, no suena la alarma
+  * Mientras no muevo el mouse, mi PC muestra la misma pantalla, no refresca.
+
+```{r}
+while (condición) {
+  # cuerpo
+}
+```
+
+## (While == for)
+
+```{r}
+for (i in seq_along(x)) {
+  # cuerpo
+}
+
+# Equivalente a 
+i <- 1
+while (i <= length(x)) {
+  # cuerpo
+  i <- i + 1 
+}
+```
+
+## While 
+
+lanzamiento <- function() sample(c("S", "C"), 1)
+
+
+```{r}
+lanzamientos <- 0
+ncaras <- 0
+lanzamiento <- function() sample(c("S", "C"), 1)
+
+while (ncaras < 3) {
+  if (lanzamiento() == "C") {
+    ncaras <- ncaras + 1
+  } else {
+    ncaras <- 0
+  }
+  lanzamientos <- lanzamientos + 1
+}
+lanzamientos
+```
+
+## While, condicion
+
+Siempre tiene que haber una condicion de salida!
+
+```{r}
+while (TRUE) {
+  # cuerpo
+  if(n > 10 ) break
+}
+```
+
+
+```{r}
+lanzamientos <- 0
+ncaras <- 0
+lanzamiento <- function() sample(c("S", "C"), 1)
+
+while (TRUE) {
+  if (lanzamiento() == "C") {
+    ncaras <- ncaras + 1
+  } else {
+    ncaras <- 0
+  }
+  lanzamientos <- lanzamientos + 1
+  if(ncaras >=3 ) break
+}
+lanzamientos
+```
+## El poder de un lenguaje funcional
+
+Quiero calcular la media, mediana, desviación estándar de cada columna
+
+```{r}
+df <- tibble(
+  a = rnorm(10),
+  b = rnorm(10),
+  c = rnorm(10),
+  d = rnorm(10)
+)
+```
+
+Podemos hacerlo con un bucle for como vimos al principio
+
+```{r}
+output <- vector("double", length(df))
+for (i in seq_along(df)) {
+  output[[i]] <- mean(df[[i]])
+}
+output
+```
+
+Si es algo que voy a usar muchas veces, mejor funciones :-)
+
+```{r}
+col_media <- function(df) {
+  output <- vector("double", length(df))
+  for (i in seq_along(df)) {
+    output[i] <- mean(df[[i]])
+  }
+  output
+}
+```
+
+También hacemos funciones para mediana y desviación estándar
+
+```{r}
+col_mediana <- function(df) {
+  output <- vector("double", length(df))
+  for (i in seq_along(df)) {
+    output[i] <- median(df[[i]])
+  }
+  output
+}
+col_desvest <- function(df) {
+  output <- vector("double", length(df))
+  for (i in seq_along(df)) {
+    output[i] <- sd(df[[i]])
+  }
+  output
+}
+```
+
+¿NO notas que algo se repite ? 
+
+Piensa...
+
+...
+...
+
+### PODEMOS PASAR FUNCIONES COMO ARGUMENTOS :-)
+
+```{r}
+col_resumen <- function(df, fun) {
+  out <- vector("double", length(df))
+  for (i in seq_along(df)) {
+    out[i] <- fun(df[[i]])
+  }
+  out
+}
+col_resumen(df, median)
+```
+```{r}
+col_resumen(df,mean)
+col_resumen(df,mean)
+```
+
 
 # ANEXO
 
